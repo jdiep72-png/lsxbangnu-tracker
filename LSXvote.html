@@ -1,365 +1,149 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LSX Vote Tracker – Realtime</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
-
-<style>
-:root{
- --primary:#0f766e;
- --primary-dark:#064e4a;
- --bg:#ecfdf5;
- --card:#d1fae5;
- --text:#022c22;
-}
-
-*{box-sizing:border-box}
-body{
- margin:0;
- font-family:Montserrat,sans-serif;
- background:var(--bg);
- color:var(--text);
- font-size:15px;
-}
-
-header{
- background:linear-gradient(90deg,var(--primary),var(--primary-dark));
- color:#fff;
- padding:24px;
- text-align:center;
- font-size:26px;
- font-weight:700;
-}
-
-/* ===== TABS ===== */
-nav{
- display:flex;
- justify-content:center;
- gap:14px;
- background:#0d9488;
- padding:14px;
- flex-wrap:wrap;
-}
-nav button{
- border:none;
- padding:12px 30px;
- border-radius:999px;
- background:rgba(255,255,255,.2);
- color:white;
- font-size:16px;
- font-weight:700;
- cursor:pointer;
-}
-nav button.active{
- background:white;
- color:var(--primary-dark);
-}
-
-section{display:none;padding:20px}
-section.active{display:block}
-
-.card{
- background:var(--card);
- border-radius:18px;
- padding:20px;
- box-shadow:0 8px 22px rgba(0,0,0,.1);
-}
-
-h2{margin-top:0;font-size:22px}
-
-/* ===== TABLE ===== */
-.table-wrap{overflow-x:auto}
-table{
- width:100%;
- min-width:560px;
- border-collapse:collapse;
-}
-th,td{
- padding:10px;
- border-bottom:1px solid #99d5c8;
- font-size:14px;
-}
-th{background:#5eead4}
-.vote-up{color:#047857;font-weight:700}
-
-/* ===== TOP 5 ===== */
-.top1{background:#fde68a;font-weight:700}
-.top2{background:#e5e7eb;font-weight:700}
-.top3{background:#fed7aa;font-weight:700}
-.top45{background:#ccfbf1}
-
-/* ===== BUTTON ===== */
-button.small{
- padding:10px 18px;
- border:none;
- border-radius:10px;
- background:var(--primary);
- color:white;
- font-weight:600;
- cursor:pointer;
-}
-
-/* ===== CHART ===== */
-.chart-wrap{
- height:260px;
-}
-@media(min-width:1024px){
- .chart-wrap{height:320px}
-}
-
-/* ===== MODAL ===== */
-.modal{
- position:fixed;
- inset:0;
- background:rgba(0,0,0,.45);
- display:none;
- align-items:center;
- justify-content:center;
- z-index:1000;
-}
-.modal.active{display:flex}
-.modal-content{
- background:#ecfdf5;
- width:92%;
- max-width:520px;
- max-height:80vh;
- overflow:auto;
- border-radius:18px;
- padding:22px;
-}
-.modal-header{
- display:flex;
- justify-content:space-between;
- align-items:center;
-}
-.close{font-size:22px;font-weight:700;cursor:pointer}
-label{display:inline-block;margin:6px 14px 6px 0}
-</style>
+  <meta charset="UTF-8" />
+  <title>Theo dõi vote nghệ sĩ – Realtime (API 1vote)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    h1 { text-align: center; }
+    #controls { margin: 20px 0; }
+    #controls label { margin-right: 16px; cursor: pointer; white-space: nowrap; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f2f2f2; }
+  </style>
 </head>
-
 <body>
+  <script>
+console.log("SCRIPT ĐÃ LOAD");
+</script>
 
-<header>LSX Vote Tracker – Realtime</header>
+<h1>Theo dõi vote nghệ sĩ – Làn Sóng Xanh 2025 (Realtime)</h1>
 
-<nav>
-<button id="tabArtists" class="active">Nghệ sĩ</button>
-<button id="tabChart">Biểu đồ</button>
-</nav>
-
-<!-- ===== ARTISTS ===== -->
-<section id="artistsSection" class="active">
-<div class="card">
-<h2>Bảng nghệ sĩ (Top 5 nổi bật)</h2>
-<div class="table-wrap">
-<table id="summaryTable">
-<tr>
-<th>Hạng</th>
-<th>Nghệ sĩ</th>
-<th>Vote</th>
-<th>Thay đổi</th>
-<th>Quy đổi (Triệu VNĐ)</th>
-</tr>
-</table>
-</div>
-</div>
-</section>
-
-<!-- ===== CHART ===== -->
-<section id="chartSection">
-<div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-<h2>Biểu đồ tăng trưởng</h2>
-<button class="small" onclick="openModal()">Chọn nghệ sĩ</button>
-</div>
-<div class="chart-wrap">
-<canvas id="voteChart"></canvas>
-</div>
-</div>
-</section>
-
-<!-- ===== MODAL ===== -->
-<div id="artistModal" class="modal">
-<div class="modal-content">
-<div class="modal-header">
-<h3>Chọn nghệ sĩ hiển thị</h3>
-<span class="close" onclick="closeModal()">×</span>
-</div>
-
-<div style="margin:12px 0">
-<button class="small" onclick="selectAll()">Chọn tất cả</button>
-<button class="small" onclick="clearAll()">Bỏ chọn</button>
-</div>
+<canvas id="voteChart" height="120"></canvas>
 
 <div id="controls"></div>
 
-<div style="text-align:right;margin-top:16px">
-<button class="small" onclick="closeModal()">Đóng</button>
-</div>
-</div>
-</div>
+<table id="summaryTable">
+  <tr><th>#</th><th>Nghệ sĩ</th><th>Vote hiện tại</th></tr>
+</table>
 
 <script>
+// ====== CẤU HÌNH ======
+// URL proxy Cloudflare Worker (THAY bằng URL của bạn sau khi deploy)
 const API_URL = "https://lsxvote.jdiep72.workers.dev/";
-const REFRESH_INTERVAL = 10000;
+const REFRESH_INTERVAL = 10000; // 10 giây
 
+// ====== BIẾN TOÀN CỤC ======
 let chart;
-let artistsMap = {};
-let lastVotes = {};
+let artistsMap = {}; // key = artist id
 
-/* ===== TABS ===== */
-tabArtists.onclick = function(){showTab('artists')};
-tabChart.onclick = function(){showTab('chart')};
-
-function showTab(t){
- artistsSection.classList.toggle('active', t==='artists');
- chartSection.classList.toggle('active', t==='chart');
- tabArtists.classList.toggle('active', t==='artists');
- tabChart.classList.toggle('active', t==='chart');
+// ====== HÀM TIỆN ÍCH ======
+function randomColor() {
+  return `hsl(${Math.floor(Math.random() * 360)},70%,50%)`;
 }
 
-/* ===== MODAL ===== */
-function openModal(){artistModal.classList.add('active')}
-function closeModal(){artistModal.classList.remove('active')}
-
-/* ===== CHART ===== */
-function randomColor(){
- return "hsl("+(Math.random()*360)+",70%,45%)";
-}
-
-function initChart(){
- chart = new Chart(voteChart,{
-  type:'line',
-  data:{labels:[],datasets:[]},
-  options:{
-   responsive:true,
-   maintainAspectRatio:false,
-   animation:false,
-   interaction:{mode:'nearest',intersect:false},
-   elements:{line:{tension:0.35},point:{radius:0}},
-   plugins:{
-    legend:{display:false},
-    zoom:{
-     pan:{enabled:true,mode:'x'},
-     zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'x'}
+// ====== KHỞI TẠO BIỂU ĐỒ ======
+function initChart() {
+  const ctx = document.getElementById('voteChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [], // trục thời gian
+      datasets: []
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      interaction: { mode: 'nearest', intersect: false },
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Thời gian' } },
+        y: { title: { display: true, text: 'Số vote' } }
+      }
     }
-   }
-  }
- });
+  });
 }
 
-function toggleDataset(i){
- chart.data.datasets[i].hidden = !chart.data.datasets[i].hidden;
- renderControls();
- chart.update();
+// ====== BẬT / TẮT ĐƯỜNG CONG ======
+function toggleDataset(index) {
+  const ds = chart.data.datasets[index];
+  ds.hidden = !ds.hidden;
+  chart.update();
 }
 
-/* ===== CONTROLS (FIXED) ===== */
-function renderControls(){
- controls.innerHTML = '';
- chart.data.datasets.forEach(function(ds,i){
-  let l = document.createElement('label');
-  l.innerHTML =
-   '<input type="checkbox" '+
-   (ds.hidden ? '' : 'checked')+
-   ' onchange="toggleDataset('+i+')"> '+
-   ds.label;
-  controls.appendChild(l);
- });
+function renderControls() {
+  const div = document.getElementById('controls');
+  div.innerHTML = '<b>Bật / tắt nghệ sĩ:</b><br>';
+
+  chart.data.datasets.forEach((ds, i) => {
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="checkbox" checked onchange="toggleDataset(${i})"> ${ds.label}`;
+    div.appendChild(label);
+  });
 }
 
-function selectAll(){
- chart.data.datasets.forEach(function(d){
-  d.hidden = false;
- });
- renderControls();
- chart.update();
+// ====== BẢNG TỔNG ======
+function updateTable(list) {
+  const table = document.getElementById('summaryTable');
+  table.innerHTML = '<tr><th>#</th><th>Nghệ sĩ</th><th>Vote hiện tại</th></tr>';
+
+  list
+    .sort((a, b) => b.points - a.points)
+    .forEach((a, i) => {
+      table.innerHTML += `<tr><td>${i + 1}</td><td>${a.name}</td><td>${a.points}</td></tr>`;
+    });
 }
 
-function clearAll(){
- chart.data.datasets.forEach(function(d){
-  d.hidden = true;
- });
- renderControls();
- chart.update();
+// ====== FETCH & UPDATE REALTIME ======
+async function refreshData() {
+  const res = await fetch(API_URL);
+  const json = await res.json();
+
+  const products = json?.data?.products || [];
+  const timeLabel = new Date().toLocaleTimeString();
+
+  chart.data.labels.push(timeLabel);
+
+  const summary = [];
+
+  products.forEach(p => {
+    // API này mỗi product chính là 1 nghệ sĩ
+    if (!artistsMap[p.id]) {
+      const dataset = {
+        label: p.name,
+        data: [],
+        borderColor: randomColor(),
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.25
+      };
+      artistsMap[p.id] = dataset;
+      chart.data.datasets.push(dataset);
+    }
+
+    artistsMap[p.id].data.push(p.points || 0);
+    summary.push({ name: p.name, points: p.points || 0 });
+  });
+
+  chart.update();
+  renderControls();
+  updateTable(summary);
 }
 
-/* ===== TABLE ===== */
-function updateTable(list){
- summaryTable.innerHTML =
- '<tr><th>#</th><th>Nghệ sĩ</th><th>Vote</th><th>+10s</th><th>Triệu VNĐ</th></tr>';
-
- list.sort(function(a,b){return b.points-a.points});
-
- list.forEach(function(a,i){
-  let money = ((a.points/10)*0.003).toFixed(3);
-  let cls = '';
-  if(i===0) cls='top1';
-  else if(i===1) cls='top2';
-  else if(i===2) cls='top3';
-  else if(i<5) cls='top45';
-
-  summaryTable.innerHTML +=
-  '<tr class="'+cls+'">'+
-   '<td>'+(i===0?'🏆':i+1)+'</td>'+
-   '<td>'+a.name+'</td>'+
-   '<td>'+a.points+'</td>'+
-   '<td class="vote-up">'+(a.diff>0?('+'+a.diff):'0')+'</td>'+
-   '<td>'+money+'</td>'+
-  '</tr>';
- });
+// ====== MAIN ======
+async function main() {
+  initChart();
+  await refreshData();
+  setInterval(refreshData, REFRESH_INTERVAL);
 }
 
-/* ===== DATA ===== */
-async function refreshData(){
- let res = await fetch(API_URL);
- let json = await res.json();
-
- let products = [];
- if(json && json.data && json.data.products){
-  products = json.data.products;
- }
-
- let time = new Date().toLocaleTimeString();
- chart.data.labels.push(time);
-
- let summary = [];
-
- products.forEach(function(p){
-  if(!artistsMap[p.id]){
-   let ds = {
-    label:p.name,
-    data:[],
-    borderColor:randomColor(),
-    borderWidth:2
-   };
-   artistsMap[p.id] = ds;
-   chart.data.datasets.push(ds);
-  }
-
-  let points = p.points || 0;
-  artistsMap[p.id].data.push(points);
-
-  let diff = points - (lastVotes[p.id] || 0);
-  lastVotes[p.id] = points;
-
-  summary.push({name:p.name,points:points,diff:diff});
- });
-
- chart.update();
- renderControls();
- updateTable(summary);
-}
-
-/* ===== INIT ===== */
-initChart();
-refreshData();
-setInterval(refreshData, REFRESH_INTERVAL);
+main();
 </script>
 
 </body>
 </html>
+
